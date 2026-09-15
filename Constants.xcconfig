@@ -1,2 +1,1 @@
-ASSOCIATED_DOMAIN_HOST = jffmrk.github.io
-INFOPLIST_KEY_AssociatedDomainHost = $(ASSOCIATED_DOMAIN_HOST)
+ASSOCIATED_DOMAIN_HOST = upward-credible-chamois.ngrok-free.app

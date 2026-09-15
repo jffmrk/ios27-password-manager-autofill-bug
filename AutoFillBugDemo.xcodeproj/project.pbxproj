@@ -11,9 +11,22 @@
 		A10000000000000000000010 /* Constants.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Constants.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A10000000000000000000011 /* Exceptions for "AutoFillBugDemo" folder in "AutoFillBugDemo" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A10000000000000000000002 /* AutoFillBugDemo */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A10000000000000000000004 /* AutoFillBugDemo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A10000000000000000000011 /* Exceptions for "AutoFillBugDemo" folder in "AutoFillBugDemo" target */,
+			);
 			path = AutoFillBugDemo;
 			sourceTree = "<group>";
 		};
@@ -257,6 +270,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = MHRLS72F24;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AutoFillBugDemo/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -288,6 +302,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = MHRLS72F24;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AutoFillBugDemo/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
