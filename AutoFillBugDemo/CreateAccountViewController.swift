@@ -26,6 +26,7 @@ final class CreateAccountViewController: UIViewController {
         usernameField.keyboardType = .emailAddress
         usernameField.returnKeyType = .next
         usernameField.delegate = self
+        usernameField.text = "Bob"
 
         passwordField.placeholder = "Create Password"
         passwordField.borderStyle = .roundedRect
@@ -103,7 +104,7 @@ final class CreateAccountViewController: UIViewController {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        usernameField.becomeFirstResponder()
+        passwordField.becomeFirstResponder()
     }
 
     @objc private func passwordFieldsDidChange() {
