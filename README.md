@@ -4,9 +4,7 @@ Minimal UIKit app with a single blank view controller, for reproducing an iOS Pa
 
 ## Demo
 
-<video src="assets/use-strong-password-ios27.0.mov" controls width="360">
-  <a href="assets/use-strong-password-ios27.0.mov">Watch Use Strong Password on iOS 27.0</a>
-</video>
+[AutoFill Bug Demo](assets/use-strong-password-ios27.0.mov)
 
 ## Open in Xcode
 
