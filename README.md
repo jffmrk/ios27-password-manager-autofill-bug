@@ -9,3 +9,7 @@ https://github.com/user-attachments/assets/dcf89954-63ca-42f4-8fe2-6242b4d545cb
 ## Open in Xcode
 
 Open `AutoFillBugDemo.xcodeproj` in Xcode 26, select an iPhone simulator, and run.
+
+## Feedback Assistant
+
+https://feedbackassistant.apple.com/feedback/24795131
