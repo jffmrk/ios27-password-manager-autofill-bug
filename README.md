@@ -4,7 +4,7 @@ Minimal UIKit app with a single blank view controller, for reproducing an iOS Pa
 
 ## Demo
 
-[AutoFill Bug Demo](assets/use-strong-password-ios27.0.mov)
+https://github.com/user-attachments/assets/dcf89954-63ca-42f4-8fe2-6242b4d545cb
 
 ## Open in Xcode
 
