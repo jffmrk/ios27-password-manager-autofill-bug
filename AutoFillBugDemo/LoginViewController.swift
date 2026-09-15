@@ -56,14 +56,13 @@ final class LoginViewController: UIViewController {
     private func saveCredentials() async {
         let username = usernameField.text ?? ""
         let password = passwordField.text ?? ""
-        let host = "example.com"
         let credentialTitle = "AutoFill Bug Demo"
 
         guard let presentingWindow = view.window else { return }
 
         do {
             let credential = ASPasswordCredential(user: username, password: password)
-            let scope = ASAutoFillURLScope(scheme: .https, host: host)
+            let scope = ASAutoFillURLScope(scheme: .https, host: Constants.host)
             try await ASCredentialDataManager().save(password: credential,
                                                      for: scope,
                                                      title: credentialTitle,

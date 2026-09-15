@@ -1,0 +1,2 @@
+ASSOCIATED_DOMAIN_HOST = jffmrk.github.io
+INFOPLIST_KEY_AssociatedDomainHost = $(ASSOCIATED_DOMAIN_HOST)
