@@ -22,16 +22,14 @@ extension UIButton {
         return UIButton(configuration: configuration)
     }
 
-    static func filledIcon(systemName: String, accessibilityLabel: String) -> UIButton {
-        var configuration = UIButton.Configuration.filled()
+    static func icon(systemName: String, accessibilityLabel: String) -> UIButton {
+        var configuration = UIButton.Configuration.plain()
         configuration.image = UIImage(
             systemName: systemName,
             withConfiguration: UIImage.SymbolConfiguration(pointSize: 20, weight: .medium)
         )
-        configuration.baseBackgroundColor = .systemBlue
-        configuration.baseForegroundColor = .white
-        configuration.cornerStyle = .medium
-        // The square aspect constraint sets the size, so padding would only fight it.
+        configuration.baseForegroundColor = .systemBlue
+        configuration.background.backgroundColor = .clear
         configuration.contentInsets = .zero
 
         let button = UIButton(configuration: configuration)

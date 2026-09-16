@@ -4,7 +4,7 @@ import UIKit
 final class LoginViewController: UIViewController {
     private let usernameField = UITextField()
     private let passwordField = UITextField()
-    private let faceIDButton = UIButton.filledIcon(systemName: "faceid", accessibilityLabel: "Face ID")
+    private let faceIDButton = UIButton.icon(systemName: "faceid", accessibilityLabel: "Face ID")
     private let loginButton = UIButton.filled(title: "Login")
     private let keyboardFrameView = KeyboardFrameView()
     private let scrollView = UIScrollView()
