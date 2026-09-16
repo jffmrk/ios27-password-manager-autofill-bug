@@ -32,6 +32,13 @@ You also need Xcode 27.
 
    This serves `docs/` on localhost, publishes it through `cloudflared`, and writes the hostname into `Constants.xcconfig`. Named-tunnel metrics do not include the public hostname, so `--host` is required in that mode.
 
+   Optional: one-time setup of your custom domain cloudflare tunnel first:
+
+   ```
+   cloudflared tunnel create TUNNEL_NAME
+   cloudflared tunnel route dns TUNNEL_NAME your.custom.domain
+   ```
+
 2. Open `AutoFillBugDemo.xcodeproj` in Xcode. In Signing & Capabilities, pick your Development Team, then run the app.
 
    The build writes `docs/.well-known/apple-app-site-association` using your Team ID and bundle ID. Keep `serve-docs` running so Apple and the device can fetch that file.
