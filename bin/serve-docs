@@ -3,6 +3,18 @@ set -euo pipefail
 
 http_port=8080
 metrics_port=60123
+tunnel_name=""
+override_host=""
+
+usage() {
+  echo "Usage: $0 [-p|--port PORT] [--metrics-port PORT] [-t|--tunnel NAME] [--host HOSTNAME]" >&2
+  echo "" >&2
+  echo "  No --tunnel: start a trycloudflare quick tunnel and read its hostname from metrics." >&2
+  echo "  --tunnel:    run a named/custom-domain tunnel you already configured:" >&2
+  echo "               cloudflared tunnel --metrics 127.0.0.1:PORT run --url http://127.0.0.1:PORT NAME" >&2
+  echo "  --host:      public hostname to write into Constants.xcconfig. Required for named" >&2
+  echo "               tunnels; /quicktunnel only reports trycloudflare hosts." >&2
+}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -14,10 +26,35 @@ while [[ $# -gt 0 ]]; do
       metrics_port="$2"
       shift 2
       ;;
-    *)
+    -t|--tunnel)
+      tunnel_name="$2"
+      shift 2
+      ;;
+    --host|--hostname)
+      override_host="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
       echo "Unknown option: $1" >&2
-      echo "Usage: $0 [-p|--port PORT] [--metrics-port PORT]" >&2
+      usage
       exit 1
+      ;;
+    *)
+      if [[ -n "$tunnel_name" ]]; then
+        echo "Tunnel name already set to ${tunnel_name}; extra argument: $1" >&2
+        usage
+        exit 1
+      fi
+      tunnel_name="$1"
+      shift
       ;;
   esac
 done
@@ -38,6 +75,44 @@ dump_cloudflared_log() {
     echo "Last cloudflared log lines (${cloudflared_log}):" >&2
     tail -n 40 "$cloudflared_log" >&2
   fi
+}
+
+hostname_from_url() {
+  python3 -c '
+import sys
+host = (sys.stdin.read() or "").strip()
+for prefix in ("https://", "http://"):
+    if host.startswith(prefix):
+        host = host[len(prefix):]
+host = host.split("/")[0].strip()
+print(host)
+'
+}
+
+read_quicktunnel_hostname() {
+  local json
+  json="$(curl -sf "http://127.0.0.1:${metrics_port}/quicktunnel" 2>/dev/null || true)"
+  [[ -n "$json" ]] || return 0
+  python3 -c '
+import json, sys
+try:
+    data = json.loads(sys.stdin.read() or "{}")
+except Exception:
+    data = {}
+print(data.get("hostname") or "")
+' <<<"$json" | hostname_from_url
+}
+
+read_metrics_hostname() {
+  local metrics
+  metrics="$(curl -sf "http://127.0.0.1:${metrics_port}/metrics" 2>/dev/null || true)"
+  [[ -n "$metrics" ]] || return 0
+  python3 -c '
+import re, sys
+text = sys.stdin.read()
+matches = re.findall(r"userHostname=\"([^\"]+)\"", text)
+print(matches[-1] if matches else "")
+' <<<"$metrics" | hostname_from_url
 }
 
 cleanup() {
@@ -79,49 +154,71 @@ if [[ "$ready" -ne 1 ]]; then
   exit 1
 fi
 
-cloudflared tunnel --no-autoupdate \
-  --url "http://127.0.0.1:${http_port}" \
-  --metrics "127.0.0.1:${metrics_port}" \
-  >"$cloudflared_log" 2>&1 &
+if [[ -n "$tunnel_name" ]]; then
+  echo "Starting named cloudflared tunnel: ${tunnel_name}"
+  cloudflared tunnel --no-autoupdate \
+    --metrics "127.0.0.1:${metrics_port}" \
+    run --url "http://127.0.0.1:${http_port}" \
+    "$tunnel_name" \
+    >"$cloudflared_log" 2>&1 &
+else
+  echo "Starting trycloudflare quick tunnel"
+  cloudflared tunnel --no-autoupdate \
+    --url "http://127.0.0.1:${http_port}" \
+    --metrics "127.0.0.1:${metrics_port}" \
+    >"$cloudflared_log" 2>&1 &
+fi
 cloudflared_pid=$!
 
 echo ""
-echo "Waiting for cloudflared quick tunnel hostname..."
-hostname=""
+echo "Waiting for cloudflared metrics on 127.0.0.1:${metrics_port}..."
+metrics_ready=0
 i=0
 while [[ $i -lt 60 ]]; do
-  json="$(curl -sf "http://127.0.0.1:${metrics_port}/quicktunnel" 2>/dev/null || true)"
-  if [[ -n "$json" ]]; then
-    hostname="$(
-      python3 -c '
-import json, sys
-try:
-    data = json.loads(sys.stdin.read() or "{}")
-except Exception:
-    data = {}
-host = data.get("hostname") or ""
-for prefix in ("https://", "http://"):
-    if host.startswith(prefix):
-        host = host[len(prefix):]
-host = host.split("/")[0].strip()
-print(host)
-' <<<"$json"
-    )"
-  fi
-  if [[ -n "$hostname" ]]; then
+  if curl -sf "http://127.0.0.1:${metrics_port}/ready" >/dev/null 2>&1 \
+    || curl -sf "http://127.0.0.1:${metrics_port}/metrics" >/dev/null 2>&1; then
+    metrics_ready=1
     break
   fi
   if ! kill -0 "${cloudflared_pid}" 2>/dev/null; then
-    echo "cloudflared exited before a hostname was available." >&2
+    echo "cloudflared exited before the metrics endpoint was available." >&2
     dump_cloudflared_log
     exit 1
   fi
   i=$((i + 1))
   sleep 0.5
 done
+if [[ "$metrics_ready" -ne 1 ]]; then
+  echo "Timed out waiting for cloudflared metrics on 127.0.0.1:${metrics_port}" >&2
+  dump_cloudflared_log
+  exit 1
+fi
+
+hostname="${override_host}"
+if [[ -z "$hostname" ]]; then
+  echo "Reading public hostname from cloudflared metrics..."
+  i=0
+  while [[ $i -lt 30 ]]; do
+    hostname="$(read_quicktunnel_hostname)"
+    if [[ -z "$hostname" ]]; then
+      hostname="$(read_metrics_hostname)"
+    fi
+    if [[ -n "$hostname" ]]; then
+      break
+    fi
+    if ! kill -0 "${cloudflared_pid}" 2>/dev/null; then
+      echo "cloudflared exited before a hostname was available." >&2
+      dump_cloudflared_log
+      exit 1
+    fi
+    i=$((i + 1))
+    sleep 0.5
+  done
+fi
 
 if [[ -z "$hostname" ]]; then
-  echo "Timed out waiting for a trycloudflare hostname from http://127.0.0.1:${metrics_port}/quicktunnel" >&2
+  echo "Could not determine the public hostname from http://127.0.0.1:${metrics_port}/quicktunnel or /metrics." >&2
+  echo "/quicktunnel only reports trycloudflare quick-tunnel hosts. Named tunnels use DNS routes you already created, so pass --host your.custom.domain." >&2
   dump_cloudflared_log
   exit 1
 fi
