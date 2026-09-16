@@ -8,8 +8,10 @@ enum CredentialManager {
         anchor: ASPresentationAnchor,
         title: String? = nil
     ) async throws {
+        let host = Constants.host
+        print("saveCredentials - username: \(username), password: \(password), host: \(host)")
         let credential = ASPasswordCredential(user: username, password: password)
-        let scope = ASAutoFillURLScope(scheme: .https, host: Constants.host)
+        let scope = ASAutoFillURLScope(scheme: .https, host: host)
         let credentialTitle = title ?? "Password for \(username)"
         try await ASCredentialDataManager().save(
             password: credential,

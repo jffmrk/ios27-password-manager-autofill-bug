@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+http_port=8080
+metrics_port=60123
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -p|--port)
+      http_port="$2"
+      shift 2
+      ;;
+    --metrics-port)
+      metrics_port="$2"
+      shift 2
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      echo "Usage: $0 [-p|--port PORT] [--metrics-port PORT]" >&2
+      exit 1
+      ;;
+  esac
+done
+
+if ! command -v cloudflared >/dev/null 2>&1; then
+  echo "cloudflared is not installed. Install it with: brew install cloudflared" >&2
+  exit 1
+fi
+
+root="$(cd "$(dirname "$0")/.." && pwd)"
+xcconfig="$root/Constants.xcconfig"
+cloudflared_log="$root/cloudflared.log"
+httpd_pid=""
+cloudflared_pid=""
+
+dump_cloudflared_log() {
+  if [[ -f "$cloudflared_log" ]]; then
+    echo "Last cloudflared log lines (${cloudflared_log}):" >&2
+    tail -n 40 "$cloudflared_log" >&2
+  fi
+}
+
+cleanup() {
+  if [[ -n "${cloudflared_pid}" ]]; then
+    kill "${cloudflared_pid}" 2>/dev/null || true
+  fi
+  if [[ -n "${httpd_pid}" ]]; then
+    kill "${httpd_pid}" 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT INT TERM
+
+cd "$root/docs"
+python3 "$root/bin/httpd.py" --port "$http_port" &
+httpd_pid=$!
+
+echo "Waiting for local server on port ${http_port}..."
+ready=0
+i=0
+while [[ $i -lt 50 ]]; do
+  if curl -sf "http://127.0.0.1:${http_port}/" >/dev/null 2>&1; then
+    ready=1
+    break
+  fi
+  if ! kill -0 "${httpd_pid}" 2>/dev/null; then
+    echo "Local server exited before it became ready." >&2
+    exit 1
+  fi
+  i=$((i + 1))
+  sleep 0.1
+done
+if [[ "$ready" -ne 1 ]]; then
+  echo "Local server did not start on port ${http_port}." >&2
+  exit 1
+fi
+
+cloudflared tunnel --no-autoupdate \
+  --url "http://127.0.0.1:${http_port}" \
+  --metrics "127.0.0.1:${metrics_port}" \
+  >"$cloudflared_log" 2>&1 &
+cloudflared_pid=$!
+
+echo ""
+echo "Waiting for cloudflared quick tunnel hostname..."
+hostname=""
+i=0
+while [[ $i -lt 60 ]]; do
+  json="$(curl -sf "http://127.0.0.1:${metrics_port}/quicktunnel" 2>/dev/null || true)"
+  if [[ -n "$json" ]]; then
+    hostname="$(
+      python3 -c '
+import json, sys
+try:
+    data = json.loads(sys.stdin.read() or "{}")
+except Exception:
+    data = {}
+host = data.get("hostname") or ""
+for prefix in ("https://", "http://"):
+    if host.startswith(prefix):
+        host = host[len(prefix):]
+host = host.split("/")[0].strip()
+print(host)
+' <<<"$json"
+    )"
+  fi
+  if [[ -n "$hostname" ]]; then
+    break
+  fi
+  if ! kill -0 "${cloudflared_pid}" 2>/dev/null; then
+    echo "cloudflared exited before a hostname was available." >&2
+    dump_cloudflared_log
+    exit 1
+  fi
+  i=$((i + 1))
+  sleep 0.5
+done
+
+if [[ -z "$hostname" ]]; then
+  echo "Timed out waiting for a trycloudflare hostname from http://127.0.0.1:${metrics_port}/quicktunnel" >&2
+  dump_cloudflared_log
+  exit 1
+fi
+
+python3 -c '
+import pathlib, re, sys
+path = pathlib.Path(sys.argv[1])
+host = sys.argv[2]
+text = path.read_text()
+pattern = r"^ASSOCIATED_DOMAIN_HOST\s*=\s*.*$"
+replacement = "ASSOCIATED_DOMAIN_HOST = " + host
+if re.search(pattern, text, flags=re.M):
+    text = re.sub(pattern, replacement, text, count=1, flags=re.M)
+else:
+    if text and not text.endswith("\n"):
+        text += "\n"
+    text += replacement + "\n"
+path.write_text(text)
+' "$xcconfig" "$hostname"
+
+echo ""
+echo "Public URL: https://${hostname}"
+echo "AASA: https://${hostname}/.well-known/apple-app-site-association"
+echo "Updated ${xcconfig} with ASSOCIATED_DOMAIN_HOST = ${hostname}"
+echo "cloudflared log: ${cloudflared_log}"
+echo ""
+echo "Run the app in Xcode next. A build-phase script writes your Team ID into"
+echo "docs/.well-known/apple-app-site-association, and the entitlement picks up this host."
+echo ""
+echo "Press Ctrl-C to stop."
+echo ""
+
+wait

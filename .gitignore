@@ -3,3 +3,6 @@ xcuserdata/
 DerivedData/
 *.xcuserstate
 build/
+__pycache__/
+cloudflared.log
+
