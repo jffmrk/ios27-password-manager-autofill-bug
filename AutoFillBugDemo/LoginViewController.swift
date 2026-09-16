@@ -4,12 +4,13 @@ import UIKit
 final class LoginViewController: UIViewController {
     private let usernameField = UITextField()
     private let passwordField = UITextField()
-    private let faceIDButton = UIButton(type: .system)
-    private let loginButton = UIButton(type: .system)
+    private let faceIDButton = UIButton.filledIcon(systemName: "faceid", accessibilityLabel: "Face ID")
+    private let loginButton = UIButton.filled(title: "Login")
     private let keyboardFrameView = KeyboardFrameView()
     private let scrollView = UIScrollView()
     private var authorizationController: ASAuthorizationController?
     private var dateCheckedCredentials: Date?
+    private var successWorkItem: DispatchWorkItem?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -20,9 +21,6 @@ final class LoginViewController: UIViewController {
         titleLabel.font = .preferredFont(forTextStyle: .largeTitle)
         titleLabel.textAlignment = .center
 
-        let symbolConfig = UIImage.SymbolConfiguration(pointSize: 22, weight: .medium)
-        faceIDButton.setImage(UIImage(systemName: "faceid", withConfiguration: symbolConfig), for: .normal)
-        faceIDButton.accessibilityLabel = "Face ID"
         faceIDButton.addTarget(self, action: #selector(faceIDTapped), for: .touchUpInside)
         faceIDButton.isHidden = true
         faceIDButton.setContentHuggingPriority(.required, for: .horizontal)
@@ -49,8 +47,6 @@ final class LoginViewController: UIViewController {
         passwordField.returnKeyType = .done
         passwordField.delegate = self
 
-        loginButton.setTitle("Login", for: .normal)
-        loginButton.titleLabel?.font = .preferredFont(forTextStyle: .title2)
         loginButton.addTarget(self, action: #selector(loginTapped), for: .touchUpInside)
 
         let stack = UIStackView(arrangedSubviews: [
@@ -112,6 +108,18 @@ final class LoginViewController: UIViewController {
         checkCredentials()
     }
 
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        clearFields()
+    }
+
+    private func clearFields() {
+        successWorkItem?.cancel()
+        successWorkItem = nil
+        usernameField.text = ""
+        passwordField.text = ""
+    }
+
     private func checkCredentials() {
         let passwordProvider = ASAuthorizationPasswordProvider()
         let passwordRequest = passwordProvider.createRequest()
@@ -171,17 +179,19 @@ final class LoginViewController: UIViewController {
         usernameField.text = ""
         passwordField.text = ""
         // wait for 1 second, display "logged in successfully" alert with ok button. On tap, dismiss the alert and pop to root view controller.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+        let work = DispatchWorkItem { [weak self] in
             let alert = UIAlertController(
                 title: "Logged in Successfully!",
                 message: "• Username: \(username)\n• Password: \(password)",
                 preferredStyle: .alert
             )
             alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in
-                self.navigationController?.popToRootViewController(animated: true)
+                self?.navigationController?.popToRootViewController(animated: true)
             })
-            self.present(alert, animated: true)
+            self?.present(alert, animated: true)
         }
+        successWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: work)
     }
 }
 
@@ -194,9 +204,11 @@ extension LoginViewController: ASAuthorizationControllerDelegate {
         usernameField.text = credential.user
         passwordField.text = credential.password
         loginButton.isEnabled = false
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            self.handleSuccess()
+        let work = DispatchWorkItem { [weak self] in
+            self?.handleSuccess()
         }
+        successWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2, execute: work)
     }
 
     func authorizationController(

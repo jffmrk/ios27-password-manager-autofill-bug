@@ -44,9 +44,7 @@ final class CreateAccountViewController: UIViewController {
         confirmPasswordField.delegate = self
         confirmPasswordField.addTarget(self, action: #selector(passwordFieldsDidChange), for: .editingChanged)
 
-        let createAccountButton = UIButton(type: .system)
-        createAccountButton.setTitle("Create Account", for: .normal)
-        createAccountButton.titleLabel?.font = .preferredFont(forTextStyle: .title2)
+        let createAccountButton = UIButton.filled(title: "Create Account")
         createAccountButton.addTarget(self, action: #selector(createAccountTapped), for: .touchUpInside)
 
         let stack = UIStackView(arrangedSubviews: [
@@ -107,6 +105,18 @@ final class CreateAccountViewController: UIViewController {
         passwordField.becomeFirstResponder()
     }
 
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        clearFields()
+    }
+
+    private func clearFields() {
+        passwordSubmitWorkItem?.cancel()
+        usernameField.text = ""
+        passwordField.text = ""
+        confirmPasswordField.text = ""
+    }
+
     @objc private func passwordFieldsDidChange() {
         passwordSubmitWorkItem?.cancel()
 
@@ -165,6 +175,7 @@ final class CreateAccountViewController: UIViewController {
                 password: password,
                 anchor: presentingWindow
             )
+            clearFields()
             let alert = UIAlertController(
                 title: "Account Created",
                 message: "Your account was created.",
