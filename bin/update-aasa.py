@@ -23,11 +23,21 @@ def main() -> None:
     bundle = require("PRODUCT_BUNDLE_IDENTIFIER")
     app_id = f"{team}.{bundle}"
 
+    association = {
+        "webcredentials": {"apps": [app_id]},
+        "applinks": {
+            "details": [
+                {
+                    "appIDs": [app_id],
+                    "components": [{"/": "*", "comment": "Open every path in the app."}],
+                }
+            ]
+        },
+    }
+
     path = Path(srcroot) / "docs" / ".well-known" / "apple-app-site-association"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps({"webcredentials": {"apps": [app_id]}}, indent=2) + "\n"
-    )
+    path.write_text(json.dumps(association, indent=2) + "\n")
     print(f"Updated {path} with {app_id}")
 
 

@@ -3,5 +3,20 @@
     "apps": [
       "MHRLS72F24.com.example.AutoFillBugDemo"
     ]
+  },
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "MHRLS72F24.com.example.AutoFillBugDemo"
+        ],
+        "components": [
+          {
+            "/": "*",
+            "comment": "Open every path in the app."
+          }
+        ]
+      }
+    ]
   }
 }

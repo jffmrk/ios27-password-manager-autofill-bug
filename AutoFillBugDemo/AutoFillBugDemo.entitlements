@@ -5,6 +5,7 @@
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>webcredentials:$(ASSOCIATED_DOMAIN_HOST)?mode=developer</string>
+		<string>applinks:$(ASSOCIATED_DOMAIN_HOST)?mode=developer</string>
 	</array>
 </dict>
 </plist>
