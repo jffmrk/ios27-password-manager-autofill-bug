@@ -153,6 +153,7 @@ final class LoginViewController: UIViewController {
             handleSuccess()
         } catch {
             loginButton.isEnabled = true
+            print("Save Failed: \(error)")
             let alert = UIAlertController(
                 title: "Save Failed",
                 message: error.localizedDescription,

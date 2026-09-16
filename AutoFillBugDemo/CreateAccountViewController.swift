@@ -176,6 +176,7 @@ final class CreateAccountViewController: UIViewController {
             present(alert, animated: true)
         } catch {
             isSubmitting = false
+            print("Save Failed: \(error)")
             presentSimpleAlert(title: "Save Failed", message: error.localizedDescription)
         }
     }

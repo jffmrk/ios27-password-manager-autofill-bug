@@ -41,12 +41,17 @@ dump_cloudflared_log() {
 }
 
 cleanup() {
+  echo "========================" >&2
+  echo "Cleaning up..." >&2
   if [[ -n "${cloudflared_pid}" ]]; then
+    echo "Killing cloudflared..." >&2
     kill "${cloudflared_pid}" 2>/dev/null || true
   fi
   if [[ -n "${httpd_pid}" ]]; then
+    echo "Killing local server..." >&2
     kill "${httpd_pid}" 2>/dev/null || true
   fi
+  echo "Bye!" >&2
 }
 trap cleanup EXIT INT TERM
 
