@@ -1,14 +1,14 @@
 {
   "webcredentials": {
     "apps": [
-      "MHRLS72F24.com.example.AutoFillBugDemo"
+      "MHRLS72F24.dev.jffmrk.ios.AutoFillBugDemo"
     ]
   },
   "applinks": {
     "details": [
       {
         "appIDs": [
-          "MHRLS72F24.com.example.AutoFillBugDemo"
+          "MHRLS72F24.dev.jffmrk.ios.AutoFillBugDemo"
         ],
         "components": [
           {
